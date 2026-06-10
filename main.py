@@ -166,7 +166,8 @@ def run_backtest():
         plt.tight_layout()
         
         # Define the target directory for saving output artifacts
-        artifact_dir = "/Users/peterkay/.gemini/antigravity/brain/bd024e0e-015d-4472-8749-96d6d1f4e17f"
+        artifact_dir = os.path.expanduser("~/Downloads/backtester")
+        os.makedirs(artifact_dir, exist_ok=True)
         # Export the figure to a high-resolution PNG file
         plot_path = os.path.join(artifact_dir, "portfolio_performance.png")
         plt.savefig(plot_path, dpi=300)
