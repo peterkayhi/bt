@@ -3,6 +3,8 @@ This module defines the PapaBearStrategy, a momentum-based ETF rotation strategy
 designed for the backtrader framework.
 """
 import datetime
+import logging
+from pathlib import Path
 import backtrader as bt
 
 class PapaBearStrategy(bt.Strategy):
@@ -10,18 +12,44 @@ class PapaBearStrategy(bt.Strategy):
     A quantitative momentum strategy that rotates into the top 3 ETFs
     within a given universe based on their trailing performance.
     """
+    # Strategy parameters
     params = (
         # Day of month to rebalance; currently used as a conceptual placeholder
         ('rebalance_day', 1), 
+        # Logger prefix/identifier
+        ('log_name', f"papa_bear_{datetime.date.today().strftime('%Y-%m-%d')}"),
+        # Directory where log files are stored
+        ('log_dir', str(Path.home() / "Downloads" / "logFiles")),
     )
 
-    def log(self, txt, dt=None):
-        """Standard logging function to output strategy activities with timestamps."""
+    def log(self, txt, dt=None):    
+        """Log a message with the strategy's current datetime.
+
+        Args:
+            txt (str): The log message text to record.
+            dt (datetime.date, optional): The date to associate with the log entry.
+                If not provided, the date of the current bar from the primary data feed is used.
+        """
         dt = dt or self.datas[0].datetime.date(0)
-        print(f"{dt.isoformat()}: {txt}")
+        self.logger.info(f"{dt.isoformat()}: {txt}")
 
     def __init__(self):
-        """Initialize the strategy, identifying the ETF universe and tracking variables."""
+        """Initialize the strategy instance.
+
+        Sets up the logger and its handlers (file handler and console stream handler)
+        according to the configured strategy parameters.
+        """
+        # Setup logging
+        self.logger = logging.getLogger(self.p.log_name)
+        logdir = Path(self.p.log_dir)
+        logdir.mkdir(parents=True, exist_ok=True)
+        self.logger.setLevel(logging.INFO)
+        if not self.logger.handlers:
+            formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+            for handler in [logging.FileHandler(f"{logdir}/{self.p.log_name}.app.log", mode='a', encoding='utf-8'), logging.StreamHandler()]:
+                handler.setFormatter(formatter)
+                self.logger.addHandler(handler)
+
         # Store reference to all data feeds provided to Cerebro
         self.etfs = self.datas
         # Track the last month a rebalance occurred to trigger monthly logic
