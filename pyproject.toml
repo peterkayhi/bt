@@ -8,4 +8,5 @@ dependencies = [
     "backtrader>=1.9.78.123",
     "matplotlib>=3.10.9",
     "requests>=2.34.2",
+    "yfinance>=1.4.1",
 ]
