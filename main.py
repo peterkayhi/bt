@@ -180,14 +180,13 @@ def save_portfolio_details(dates, portfolio_values, artifact_dir):
     """
     Saves portfolio values and corresponding dates to a CSV file.
     """
-    import csv
+    import pandas as pd
+    df = pd.DataFrame({
+        "Date": dates,
+        "Portfolio Value": portfolio_values
+    })
     csv_path = os.path.join(artifact_dir, "port_details.csv")
-    with open(csv_path, mode='w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(["Date", "Portfolio Value"])
-        for d, val in zip(dates, portfolio_values):
-            date_str = d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d)
-            writer.writerow([date_str, val])
+    df.to_csv(csv_path, index=False)
     print(f"Portfolio details saved to: {csv_path}")
 
 if __name__ == "__main__":
