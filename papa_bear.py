@@ -115,6 +115,22 @@ class PapaBearStrategy(bt.Strategy):
             self.last_rebalance_month = current_date.month
             self.rebalance_portfolio()
 
+    def log_order_details(self, data, target):
+        """
+        Logs details of an order before calling order_target_percent.
+        """
+        price = data.close[0]
+        portfolio_value = self.broker.getvalue()
+        cash = self.broker.getcash()
+        current_size = self.getposition(data).size
+        target_size = int((portfolio_value * target) / price) if price > 0 else 0
+        qty = target_size - current_size
+        total_buy = qty * price
+        self.log(
+            f"Order Details - ETF: {data._name}, Price: {price:.2f}, Qty: {qty}, "
+            f"Total Buy: {total_buy:.2f}, Portfolio Value: {portfolio_value:.2f}, Cash: {cash:.2f}"
+        )
+
     def rebalance_portfolio(self):
         """
         Executes the portfolio rotation logic:
@@ -148,6 +164,7 @@ class PapaBearStrategy(bt.Strategy):
             if position.size > 0 and data not in top_3:
                 self.log(f"Selling {data._name} (no longer in top 3)")
                 # target=0.0 signals to close the position
+                self.log_order_details(data, target=0.0)
                 self.order_target_percent(data, target=0.0)
 
         # 3. Buy/Allocate to the top 3 ETFs equally
@@ -155,6 +172,7 @@ class PapaBearStrategy(bt.Strategy):
         target_weight = 1.0 / 3.0
         for data in top_3:
             # Calculate required adjustment to reach 33.3% weight
+            self.log_order_details(data, target=target_weight)
             self.order_target_percent(data, target=target_weight)
             
     def notify_order(self, order):
