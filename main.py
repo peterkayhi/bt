@@ -173,5 +173,22 @@ def run_backtest():
         print(f"Performance plot saved to: {plot_path}")
         plt.close()
 
+        # Output CSV containing dates and portfolio values
+        save_portfolio_details(strat.dates, strat.portfolio_values, artifact_dir)
+
+def save_portfolio_details(dates, portfolio_values, artifact_dir):
+    """
+    Saves portfolio values and corresponding dates to a CSV file.
+    """
+    import csv
+    csv_path = os.path.join(artifact_dir, "port_details.csv")
+    with open(csv_path, mode='w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["Date", "Portfolio Value"])
+        for d, val in zip(dates, portfolio_values):
+            date_str = d.strftime('%Y-%m-%d') if hasattr(d, 'strftime') else str(d)
+            writer.writerow([date_str, val])
+    print(f"Portfolio details saved to: {csv_path}")
+
 if __name__ == "__main__":
     run_backtest()
