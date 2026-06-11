@@ -22,6 +22,10 @@ class PapaBearStrategy(bt.Strategy):
         ('log_dir', str(Path.home() / "Downloads" / "logFiles")),
         # Cash safety buffer to prevent margin/insufficient cash failures
         ('cash_buffer', 0.03),
+        # Rebalancing threshold trigger (percent difference)
+        ('rebalance_trigger', 0.2),
+        # Rebalancing threshold target (percent difference)
+        ('rebalance_target', 0.1),
     )
 
     def log(self, txt, dt=None, level='info'):    
@@ -64,6 +68,8 @@ class PapaBearStrategy(bt.Strategy):
         self.etfs = self.datas
         # Track the last month a rebalance occurred to trigger monthly logic
         self.last_rebalance_month = None
+        # Track the top 3 ETFs from the last rebalance
+        self.last_top_3 = None
 
     def get_historical_price(self, data, days_ago):
         """
@@ -146,7 +152,7 @@ class PapaBearStrategy(bt.Strategy):
         Executes the portfolio rotation logic:
         1. Ranks ETFs by momentum.
         2. Liquidates assets falling out of the top 3.
-        3. Allocates capital equally to the new top 3.
+        3. Rebalances underperforming/overperforming holdings based on trigger and target.
         """
         # 1. Calculate momentum for all ETFs
         rankings = []
@@ -164,7 +170,7 @@ class PapaBearStrategy(bt.Strategy):
         top_3_names = [d._name for d in top_3]
         
         # Log rebalancing details for transparency
-        self.log(f"Rebalancing. Top 3 ETFs: {top_3_names}")
+        self.log(f"Rebalancing check. Top 3 ETFs: {top_3_names}")
         for data, mom in rankings[:5]:
             self.log(f"  {data._name}: Momentum = {mom:.2%}")
             
@@ -177,13 +183,86 @@ class PapaBearStrategy(bt.Strategy):
                 self.log_order_details(data, target=0.0)
                 self.order_target_percent(data, target=0.0)
 
-        # 3. Buy/Allocate to the top 3 ETFs equally
-        # Target is adjusted based on cash_buffer to avoid margin calls
-        target_weight = (1.0 - self.p.cash_buffer) / 3.0
-        for data in top_3:
-            # Calculate required adjustment to reach target weight
-            self.log_order_details(data, target=target_weight)
-            self.order_target_percent(data, target=target_weight)
+        portfolio_value = self.broker.getvalue()
+
+        # 3. Buy/Allocate or rebalance to the top 3 ETFs
+        if not self.last_top_3 or len(self.last_top_3) < 3:
+            # First time: allocate equally (adjust for cash buffer)
+            target_weight = (1.0 - self.p.cash_buffer) / 3.0
+            self.log("Initial equal allocation for top 3 ETFs")
+            for data in top_3:
+                self.log_order_details(data, target=target_weight)
+                self.order_target_percent(data, target=target_weight)
+        else:
+            # Map top_3 values using Pass 1 and Pass 2 from self.last_top_3
+            prev_vals = []
+            for d in self.last_top_3:
+                val = self.getposition(d).size * d.close[0]
+                prev_vals.append(val)
+                
+            new_vals = [None, None, None]
+            used_prev_idx = []
+            
+            # Pass 1: Preserve tickers that remain in the top 3
+            for k in range(3):
+                curr_etf = top_3[k]
+                if curr_etf in self.last_top_3:
+                    prev_idx = self.last_top_3.index(curr_etf)
+                    new_vals[k] = prev_vals[prev_idx]
+                    used_prev_idx.append(prev_idx)
+                    
+            # Pass 2: Rotations (fill empty slots using dropped tickers' values)
+            unused_prev_idx = [idx for idx in range(3) if idx not in used_prev_idx]
+            for k in range(3):
+                if new_vals[k] is None:
+                    if k in unused_prev_idx:
+                        funding_idx = k
+                        unused_prev_idx.remove(k)
+                    else:
+                        funding_idx = unused_prev_idx.pop(0)
+                    new_vals[k] = prev_vals[funding_idx]
+            
+            # Now we check if we exceed the rebalance trigger
+            v_max = max(new_vals)
+            v_min = min(new_vals)
+            
+            if v_min > 0:
+                percent_delta = (v_max - v_min) / v_min
+            else:
+                percent_delta = float('inf')
+                
+            # Initialize target values with the mapped new_vals
+            target_vals = list(new_vals)
+            max_idx = new_vals.index(v_max)
+            min_idx = new_vals.index(v_min)
+            
+            rebalanced = False
+            if percent_delta >= self.p.rebalance_trigger:
+                self.log(f"Trigger exceeded: percent_delta={percent_delta:.2%} >= trigger={self.p.rebalance_trigger:.2%}. Rebalancing largest and smallest holdings.")
+                # Calculate delta to transfer from largest to smallest
+                delta = (v_max - v_min * (1.0 + self.p.rebalance_target)) / (2.0 + self.p.rebalance_target)
+                
+                target_vals[max_idx] = v_max - delta
+                target_vals[min_idx] = v_min + delta
+                rebalanced = True
+            else:
+                self.log(f"No rebalance triggered: percent_delta={percent_delta:.2%} < trigger={self.p.rebalance_trigger:.2%}.")
+                
+            # Execute the orders:
+            # 1. If rebalanced, execute orders for largest and smallest
+            # 2. If any ETF is a rotation (was not in last_top_3), execute order to establish position
+            for k in range(3):
+                etf = top_3[k]
+                is_rotation = (etf not in self.last_top_3)
+                is_rebalanced_leg = rebalanced and (k in (max_idx, min_idx))
+                
+                if is_rotation or is_rebalanced_leg:
+                    target_weight = target_vals[k] / portfolio_value if portfolio_value > 0 else 0.0
+                    self.log_order_details(etf, target=target_weight)
+                    self.order_target_percent(etf, target=target_weight)
+                
+        # Update last top 3
+        self.last_top_3 = top_3
             
     def notify_order(self, order):
         """
