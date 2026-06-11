@@ -28,6 +28,8 @@ class PapaBearStrategy(bt.Strategy):
         ('rebalance_trigger', 0.2),
         # Rebalancing threshold target (percent difference)
         ('rebalance_target', 0.1),
+        # Lookback windows (in days) to calculate momentum
+        ('lookbacks', [63, 126, 252]),
     )
 
     def log(self, txt, dt=None, level='info'):    
@@ -116,18 +118,16 @@ class PapaBearStrategy(bt.Strategy):
         if current_price <= 0:
             return -999.0
             
-        # Fetch historical prices using calendar day offsets
-        price_3m = self.get_historical_price(data, 90)
-        price_6m = self.get_historical_price(data, 180)
-        price_12m = self.get_historical_price(data, 365)
-        
-        # Compute percentage returns for each period
-        gain_3m = (current_price - price_3m) / price_3m if price_3m > 0 else 0
-        gain_6m = (current_price - price_6m) / price_6m if price_6m > 0 else 0
-        gain_12m = (current_price - price_12m) / price_12m if price_12m > 0 else 0
-        
-        # Return the simple arithmetic mean of the gains
-        avg_gain = (gain_3m + gain_6m + gain_12m) / 3.0
+        if not self.p.lookbacks:
+            return 0.0
+
+        gains = []
+        for lookback in self.p.lookbacks:
+            hist_price = self.get_historical_price(data, lookback)
+            gain = (current_price - hist_price) / hist_price if hist_price > 0 else 0
+            gains.append(gain)
+            
+        avg_gain = sum(gains) / len(gains)
         return avg_gain
 
     def next(self):
