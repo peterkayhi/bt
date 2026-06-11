@@ -20,6 +20,8 @@ class PapaBearStrategy(bt.Strategy):
         ('log_name', f"papa_bear_{datetime.date.today().strftime('%Y-%m-%d')}"),
         # Directory where log files are stored
         ('log_dir', str(Path.home() / "Downloads" / "logFiles")),
+        # Cash safety buffer to prevent margin/insufficient cash failures
+        ('cash_buffer', 0.03),
     )
 
     def log(self, txt, dt=None):    
@@ -127,8 +129,8 @@ class PapaBearStrategy(bt.Strategy):
         qty = target_size - current_size
         total_buy = qty * price
         self.log(
-            f"Order Details - ETF: {data._name}, Price: {price:.2f}, Qty: {qty}, "
-            f"Total Buy: {total_buy:.2f}, Portfolio Value: {portfolio_value:.2f}, Cash: {cash:.2f}"
+            f"Order Details - ETF: {data._name}: Price: {price:.2f}: Qty: {qty}: "
+            f"Total Buy: {total_buy:.2f}: Portfolio Value: {portfolio_value:.2f}: Cash: {cash:.2f}"
         )
 
     def rebalance_portfolio(self):
@@ -168,10 +170,10 @@ class PapaBearStrategy(bt.Strategy):
                 self.order_target_percent(data, target=0.0)
 
         # 3. Buy/Allocate to the top 3 ETFs equally
-        # Target is 33% of portfolio value for each of the top 3 ETFs
-        target_weight = 1.0 / 3.0
+        # Target is adjusted based on cash_buffer to avoid margin calls
+        target_weight = (1.0 - self.p.cash_buffer) / 3.0
         for data in top_3:
-            # Calculate required adjustment to reach 33.3% weight
+            # Calculate required adjustment to reach target weight
             self.log_order_details(data, target=target_weight)
             self.order_target_percent(data, target=target_weight)
             
@@ -184,8 +186,8 @@ class PapaBearStrategy(bt.Strategy):
         """
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.log(f"BUY EXECUTED, Price: {order.executed.price:.2f}, Cost: {order.executed.value:.2f}, Comm: {order.executed.comm:.2f}")
+                self.log(f"BUY EXECUTED, Price: {order.executed.price:.2f}: Cost: {order.executed.value:.2f}: Comm: {order.executed.comm:.2f}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}")
             else:
-                self.log(f"SELL EXECUTED, Price: {order.executed.price:.2f}, Cost: {order.executed.value:.2f}, Comm: {order.executed.comm:.2f}")
+                self.log(f"SELL EXECUTED, Price: {order.executed.price:.2f}: Cost: {order.executed.value:.2f}: Comm: {order.executed.comm:.2f}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log(f"ORDER FAILED status: {order.getstatusname()}")
+            self.log(f"ORDER FAILED status: {order.getstatusname()}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}")
