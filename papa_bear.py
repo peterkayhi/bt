@@ -150,10 +150,11 @@ class PapaBearStrategy(bt.Strategy):
         target_size = int((portfolio_value * target) / price) if price > 0 else 0
         qty = target_size - current_size
         total_buy = qty * price
+        log_level = "BUY" if total_buy > 0 else "SELL"
         self.log(
             f"Order Details - ETF: {data._name}: Price: {price:.2f}: Qty: {qty}: "
             f"Total Buy: {total_buy:.2f}: Portfolio Value: {portfolio_value:.2f}: Cash: {cash:.2f}",
-            level="BUY"
+            level=log_level
         )
 
     def rebalance_portfolio(self):
