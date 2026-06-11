@@ -54,9 +54,8 @@ class CustomPapaBearStrategy(PapaBearStrategy):
         if current_date >= datetime.date(2015, 1, 1):
             self.dates.append(current_date)
             self.portfolio_values.append(self.broker.getvalue())
-            
-        # Continue with standard strategy logic
-        super().next()
+            # Continue with standard strategy logic
+            super().next()
 
 def run_backtest():
     """
