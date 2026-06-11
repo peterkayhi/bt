@@ -24,16 +24,24 @@ class PapaBearStrategy(bt.Strategy):
         ('cash_buffer', 0.03),
     )
 
-    def log(self, txt, dt=None):    
+    def log(self, txt, dt=None, level='info'):    
         """Log a message with the strategy's current datetime.
 
         Args:
             txt (str): The log message text to record.
             dt (datetime.date, optional): The date to associate with the log entry.
                 If not provided, the date of the current bar from the primary data feed is used.
+            level (str or int, optional): The log level or type. Defaults to 'info'.
         """
         dt = dt or self.datas[0].datetime.date(0)
-        self.logger.info(f"{dt.isoformat()}: {txt}")
+        
+        if isinstance(level, str):
+            try:
+                level = getattr(logging, level.upper())
+            except AttributeError:
+                level = logging.INFO
+                
+        self.logger.log(level, f"{dt.isoformat()}: {txt}")
 
     def __init__(self):
         """Initialize the strategy instance.
@@ -190,4 +198,4 @@ class PapaBearStrategy(bt.Strategy):
             else:
                 self.log(f"SELL EXECUTED, Price: {order.executed.price:.2f}: Cost: {order.executed.value:.2f}: Comm: {order.executed.comm:.2f}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
-            self.log(f"ORDER FAILED status: {order.getstatusname()}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}")
+            self.log(f"ORDER FAILED status: {order.getstatusname()}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}", level='error')
