@@ -2,6 +2,8 @@
 This module defines the PapaBearStrategy, a momentum-based ETF rotation strategy
 designed for the backtrader framework.
 """
+from asyncio import selector_events
+from asyncio import selector_events
 import datetime
 import logging
 from pathlib import Path
@@ -38,6 +40,12 @@ class PapaBearStrategy(bt.Strategy):
             level (str or int, optional): The log level or type. Defaults to 'info'.
         """
         dt = dt or self.datas[0].datetime.date(0)
+        
+        # Register custom levels dynamically if they aren't already defined
+        for lvl_name, lvl_val in [('REBAL', 21), ('TRIG', 22), ('BUY', 23), ('SELL', 24)]:
+            if not hasattr(logging, lvl_name):
+                logging.addLevelName(lvl_val, lvl_name)
+                setattr(logging, lvl_name, lvl_val)
         
         if isinstance(level, str):
             try:
@@ -144,7 +152,8 @@ class PapaBearStrategy(bt.Strategy):
         total_buy = qty * price
         self.log(
             f"Order Details - ETF: {data._name}: Price: {price:.2f}: Qty: {qty}: "
-            f"Total Buy: {total_buy:.2f}: Portfolio Value: {portfolio_value:.2f}: Cash: {cash:.2f}"
+            f"Total Buy: {total_buy:.2f}: Portfolio Value: {portfolio_value:.2f}: Cash: {cash:.2f}",
+            level="BUY"
         )
 
     def rebalance_portfolio(self):
@@ -178,7 +187,7 @@ class PapaBearStrategy(bt.Strategy):
         for data in self.etfs:
             position = self.getposition(data)
             if position.size > 0 and data not in top_3:
-                self.log(f"Selling {data._name} (no longer in top 3)")
+                self.log(f"Selling {data._name} (no longer in top 3)", level="REBAL")
                 # target=0.0 signals to close the position
                 self.log_order_details(data, target=0.0)
                 self.order_target_percent(data, target=0.0)
@@ -238,7 +247,7 @@ class PapaBearStrategy(bt.Strategy):
             
             rebalanced = False
             if percent_delta >= self.p.rebalance_trigger:
-                self.log(f"Trigger exceeded: percent_delta={percent_delta:.2%} >= trigger={self.p.rebalance_trigger:.2%}. Rebalancing largest and smallest holdings.")
+                self.log(f"Trigger exceeded: percent_delta={percent_delta:.2%} >= trigger={self.p.rebalance_trigger:.2%}. Rebalancing largest and smallest holdings.", level="TRIG")
                 # Calculate delta to transfer from largest to smallest
                 delta = (v_max - v_min * (1.0 + self.p.rebalance_target)) / (2.0 + self.p.rebalance_target)
                 
