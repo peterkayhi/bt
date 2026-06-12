@@ -8,7 +8,7 @@ import yfinance as yf
 import pandas as pd
 
 # List of ETF tickers to include in the historical data universe
-ETFS = ["BNDX", "DBC", "EEM", "EFA", "GLD", "IEF", "IWD", "IWF", "IWN", "IWO", "LQD", "TLT", "VNQ"]
+ETFS = ['VTV', 'VUG', 'VIOV', 'VIOG', 'VEA', 'VWO', 'VNQ','PDBC', 'IAU', 'EDV', 'VGIT', 'VCLT', 'BNDX']
 # Absolute path to the directory where data files will be stored
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 

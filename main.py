@@ -12,7 +12,9 @@ from papa_bear import PapaBearStrategy
 plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.available else 'default')
 
 # List of target ETF tickers for the strategy universe
-ETFS = ["BNDX", "DBC", "EEM", "EFA", "GLD", "IEF", "IWD", "IWF", "IWN", "IWO", "LQD", "TLT", "VNQ"]
+ETFS = [
+    'VTV', 'VUG', 'VIOV', 'VIOG', 'VEA', 'VWO', 'VNQ','PDBC', 'IAU', 'EDV', 'VGIT', 'VCLT', 'BNDX'
+    ]
 # Absolute path to the directory containing historical CSV data
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
