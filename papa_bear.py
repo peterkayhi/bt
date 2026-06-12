@@ -8,6 +8,8 @@ import datetime
 import logging
 from pathlib import Path
 import backtrader as bt
+import pandas as pd
+
 
 class PapaBearStrategy(bt.Strategy):
     """
@@ -134,9 +136,8 @@ class PapaBearStrategy(bt.Strategy):
         """Executed on every bar (daily). Checks if a rebalance is due."""
         current_date = self.datas[0].datetime.date(0)
         
-        # Trigger rebalance logic if the month has changed
-        if self.last_rebalance_month is None or current_date.month != self.last_rebalance_month:
-            self.last_rebalance_month = current_date.month
+        # Trigger rebalance if current_date is the business month end (BME)
+        if pd.tseries.offsets.BMonthEnd().is_on_offset(pd.Timestamp(current_date)):
             self.rebalance_portfolio()
 
     def log_order_details(self, data, target):
