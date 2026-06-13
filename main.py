@@ -85,6 +85,7 @@ def run_backtest():
         # Register the data feed with a specific ticker name for internal reference
         cerebro.adddata(data, name=ticker)
 
+
     # 2. Configure broker
     cerebro.broker.setcash(100000.0)
     # Apply a 0.1% commission to simulate realistic transaction costs
@@ -108,6 +109,11 @@ def run_backtest():
     # Run the simulation and capture the resulting strategy instance
     results = cerebro.run()
     strat = results[0]
+
+    # Save all data from cerebro to alldata.csv (must be after run so line buffers are populated)
+    artifact_dir = os.path.expanduser("~/Downloads/backtester")
+    os.makedirs(artifact_dir, exist_ok=True)
+    save_all_data(cerebro, artifact_dir)
 
     # 4. Extract performance metrics
     final_val = cerebro.broker.getvalue()
@@ -170,7 +176,7 @@ def run_backtest():
         artifact_dir = os.path.expanduser("~/Downloads/backtester")
         os.makedirs(artifact_dir, exist_ok=True)
         # Export the figure to a high-resolution PNG file
-        plot_path = os.path.join(artifact_dir, "portfolio_performance.png")
+        plot_path = os.path.join(artifact_dir, f"bt_chart_{datetime.date.today().strftime('%Y-%m-%d')}.png")
         plt.savefig(plot_path, dpi=300)
         print(f"Performance plot saved to: {plot_path}")
         plt.close()
@@ -187,9 +193,42 @@ def save_portfolio_details(dates, portfolio_values, artifact_dir):
         "Date": dates,
         "Portfolio Value": portfolio_values
     })
-    csv_path = os.path.join(artifact_dir, "port_details.csv")
+    df["Date"] = pd.to_datetime(df["Date"])
+    df.set_index("Date", inplace=True)
+    df = df.resample("BME").last().dropna(how="all")
+    df.reset_index(inplace=True)
+    
+    csv_path = os.path.join(artifact_dir, f"bt_copyPaste_{datetime.date.today().strftime('%Y-%m-%d')}.csv")
     df.to_csv(csv_path, index=False)
     print(f"Portfolio details saved to: {csv_path}")
+
+def save_all_data(cerebro, artifact_dir):
+    """
+    Saves the historical Close prices for all data feeds in cerebro to a CSV file.
+    Extracts data directly from backtrader's in-memory line buffers.
+    Must be called after cerebro.run() so that data lines are populated.
+    """
+    import pandas as pd
+    
+    all_series = {}
+    for data in cerebro.datas:
+        ticker = data._name
+        size = len(data)
+        # Extract dates and close prices from backtrader's line arrays
+        dates = [bt.num2date(dt).date() for dt in data.datetime.get(ago=0, size=size)]
+        closes = list(data.close.get(ago=0, size=size))
+        all_series[ticker] = pd.Series(closes, index=pd.to_datetime(dates), name=ticker)
+    
+    if all_series:
+        df_merged = pd.DataFrame(all_series)
+        df_merged.index.name = "Date"
+        df_merged.sort_index(inplace=True)
+        df_merged = df_merged.resample("BME").last().dropna(how="all")
+        df_merged.reset_index(inplace=True)
+        
+        csv_path = os.path.join(artifact_dir, "alldata.csv")
+        df_merged.to_csv(csv_path, index=False)
+        print(f"All data saved to: {csv_path}")
 
 if __name__ == "__main__":
     run_backtest()
