@@ -1,0 +1,3 @@
+# Python Execution Rules
+- Always execute Python scripts or modules using the local virtual environment interpreter: `./.venv/bin/python <args>` (or run with `uv run python <args>` if using uv).
+- Never use the system-wide `python` or `python3` command.

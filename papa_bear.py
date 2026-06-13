@@ -83,25 +83,19 @@ class PapaBearStrategy(bt.Strategy):
         # Track the top 3 ETFs from the last rebalance
         self.last_top_3 = None
 
-    def get_historical_price(self, data, days_ago):
+    def get_historical_price(self, data, lookback):
         """
-        Retrieves the closing price of a data feed from approximately N calendar days ago.
+        Retrieves the closing price of a data feed from lookback trading days ago.
         
         Args:
             data: The backtrader data feed object.
-            days_ago (int): Number of calendar days to look back.
+            lookback (int): Number of trading days to look back.
             
         Returns:
-            float: The closing price at or just before the target date.
+            float: The closing price lookback trading days ago, or fallback to the first available bar.
         """
-        curr_date = data.datetime.date(0)
-        target_date = curr_date - datetime.timedelta(days=days_ago)
-        
-        # Iterate backwards through available bars to find the closest trading day
-        for i in range(len(data)):
-            if data.datetime.date(-i) <= target_date:
-                return data.close[-i]
-        
+        if len(data) > lookback:
+            return data.close[-lookback]
         # Fallback: return the first available bar if the requested history is missing
         return data.close[-len(data) + 1]
 
@@ -123,14 +117,11 @@ class PapaBearStrategy(bt.Strategy):
         if not self.p.lookbacks:
             return 0.0
 
-        gains = []
-        for lookback in self.p.lookbacks:
-            hist_price = self.get_historical_price(data, lookback)
-            gain = (current_price - hist_price) / hist_price if hist_price > 0 else 0
-            gains.append(gain)
-            
-        avg_gain = sum(gains) / len(gains)
-        return avg_gain
+        gains = [
+            (current_price - hist_price) / hist_price if (hist_price := self.get_historical_price(data, lookback)) > 0 else 0
+            for lookback in self.p.lookbacks
+        ]
+        return sum(gains) / len(gains)
 
     def next(self):
         """Executed on every bar (daily). Checks if a rebalance is due."""

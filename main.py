@@ -226,7 +226,7 @@ def save_all_data(cerebro, artifact_dir):
         df_merged = df_merged.resample("BME").last().dropna(how="all")
         df_merged.reset_index(inplace=True)
         
-        csv_path = os.path.join(artifact_dir, "alldata.csv")
+        csv_path = os.path.join(artifact_dir, f"bt_alldata_{datetime.date.today().strftime('%Y-%m-%d')}.csv")
         df_merged.to_csv(csv_path, index=False)
         print(f"All data saved to: {csv_path}")
 
