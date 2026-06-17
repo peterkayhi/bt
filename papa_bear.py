@@ -46,7 +46,7 @@ class PapaBearStrategy(bt.Strategy):
         dt = dt or self.datas[0].datetime.date(0)
         
         # Register custom levels dynamically if they aren't already defined
-        for lvl_name, lvl_val in [('REBAL', 21), ('TRIG', 22), ('BUY', 23), ('SELL', 24)]:
+        for lvl_name, lvl_val in [('REBAL', 21), ('TRIG', 22), ('BUY', 23), ('SELL', 24), ('DATE', 25)]:
             if not hasattr(logging, lvl_name):
                 logging.addLevelName(lvl_val, lvl_name)
                 setattr(logging, lvl_name, lvl_val)
@@ -127,8 +127,18 @@ class PapaBearStrategy(bt.Strategy):
         """Executed on every bar (daily). Checks if a rebalance is due."""
         current_date = self.datas[0].datetime.date(0)
         
-        # Trigger rebalance if current_date is the business month end (BME)
-        if pd.tseries.offsets.BMonthEnd().is_on_offset(pd.Timestamp(current_date)):
+        # Check if there is the next date will be a month change, i.e. this is the last day of the month we have in the data
+        month_change = False
+        if len(self.datas[0]) > 1:
+            # look to the next date in the data
+            next_date = self.datas[0].datetime.date(1)
+            
+            month_change = (current_date.month != next_date.month)
+            
+        self.log(f"Month Change: {month_change}", dt=current_date, level='DATE')
+        
+        # Trigger rebalance on month change
+        if month_change:
             self.rebalance_portfolio()
 
     def log_order_details(self, data, target):
@@ -172,7 +182,7 @@ class PapaBearStrategy(bt.Strategy):
         top_3_names = [d._name for d in top_3]
         
         # Log rebalancing details for transparency
-        self.log(f"Rebalancing check. Top 3 ETFs: {top_3_names}")
+        self.log(f"Rebalance check. Top 3 ETFs: {top_3_names}")
         for data, mom in rankings[:5]:
             self.log(f"  {data._name}: Momentum = {mom:.2%}")
             
@@ -180,7 +190,7 @@ class PapaBearStrategy(bt.Strategy):
         for data in self.etfs:
             position = self.getposition(data)
             if position.size > 0 and data not in top_3:
-                self.log(f"Selling {data._name} (no longer in top 3)", level="REBAL")
+                self.log(f"Rebalancing: Selling {data._name} (no longer in top 3)", level="REBAL")
                 # target=0.0 signals to close the position
                 self.log_order_details(data, target=0.0)
                 self.order_target_percent(data, target=0.0)
@@ -248,7 +258,7 @@ class PapaBearStrategy(bt.Strategy):
                 target_vals[min_idx] = v_min + delta
                 rebalanced = True
             else:
-                self.log(f"No rebalance triggered: percent_delta={percent_delta:.2%} < trigger={self.p.rebalance_trigger:.2%}.")
+                self.log(f"NoRebalance triggered: percent_delta={percent_delta:.2%} < trigger={self.p.rebalance_trigger:.2%}.")
                 
             # Execute the orders:
             # 1. If rebalanced, execute orders for largest and smallest
