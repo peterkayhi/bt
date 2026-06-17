@@ -46,7 +46,7 @@ class PapaBearStrategy(bt.Strategy):
         dt = dt or self.datas[0].datetime.date(0)
         
         # Register custom levels dynamically if they aren't already defined
-        for lvl_name, lvl_val in [('REBAL', 21), ('TRIG', 22), ('BUY', 23), ('SELL', 24), ('DATE', 25)]:
+        for lvl_name, lvl_val in [('REBAL', 21), ('TRIG', 22), ('BUY', 23), ('SELL', 24), ('DATE', 25), ('PORT', 26)]:
             if not hasattr(logging, lvl_name):
                 logging.addLevelName(lvl_val, lvl_name)
                 setattr(logging, lvl_name, lvl_val)
@@ -129,7 +129,7 @@ class PapaBearStrategy(bt.Strategy):
         
         # Check if there is the next date will be a month change, i.e. this is the last day of the month we have in the data
         month_change = False
-        if len(self.datas[0]) > 1:
+        if len(self.datas[0]) > 1 and len(self.datas[0]) < self.datas[0].buflen():
             # look to the next date in the data
             next_date = self.datas[0].datetime.date(1)
             
@@ -155,9 +155,10 @@ class PapaBearStrategy(bt.Strategy):
         log_level = "BUY" if total_buy > 0 else "SELL"
         self.log(
             f"Order Details - ETF: {data._name}: Price: {price:.2f}: Qty: {qty}: "
-            f"Total Buy: {total_buy:.2f}: Portfolio Value: {portfolio_value:.2f}: Cash: {cash:.2f}",
+            f"Total Buy: {total_buy:.2f}",
             level=log_level
         )
+        self.log(f"Portfolio: {portfolio_value:.2f}: Cash: {cash:.2f}", level="PORT")
 
     def rebalance_portfolio(self):
         """
@@ -285,8 +286,10 @@ class PapaBearStrategy(bt.Strategy):
         """
         if order.status in [order.Completed]:
             if order.isbuy():
-                self.log(f"BUY EXECUTED, Price: {order.executed.price:.2f}: Cost: {order.executed.value:.2f}: Comm: {order.executed.comm:.2f}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}")
+                self.log(f"BUY EXECUTED, Price: {order.executed.price:.2f}: Cost: {order.executed.value:.2f}: Comm: {order.executed.comm:.2f}")
+                self.log(f"Portfolio: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}", level="PORT")
             else:
-                self.log(f"SELL EXECUTED, Price: {order.executed.price:.2f}: Cost: {order.executed.value:.2f}: Comm: {order.executed.comm:.2f}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}")
+                self.log(f"SELL EXECUTED, Price: {order.executed.price:.2f}: Cost: {order.executed.value:.2f}: Comm: {order.executed.comm:.2f}")
+                self.log(f"Portfolio: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}", level="PORT")
         elif order.status in [order.Canceled, order.Margin, order.Rejected]:
             self.log(f"ORDER FAILED status: {order.getstatusname()}: Portfolio Value: {self.broker.getvalue():.2f}: Cash: {self.broker.getcash():.2f}", level='error')
