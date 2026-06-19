@@ -19,11 +19,16 @@ ETFS = [
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 # Backtest configuration constants
-EVAL_START = datetime.datetime(2015, 1, 1)
+EVAL_START = datetime.date(2015, 1, 1)
 TO_DATE = datetime.datetime.now()
 START_CASH = 100000.0
 COMMISSION = 0.000 # transaction fees
-DOWNLOAD_DIR = "~/Downloads/backtester"
+DOWNLOAD_DIR = "~/Downloads/backtrader"
+CHART_PREFIX = "bt_chart_"
+TITLE_PREFIX = "Livingston's Papa Bear Portfolio Performance ({} - {})"
+COPYPASTE_FILE = "bt_copyPaste_"
+DATA_FILE = "bt_alldata_"
+PLOT_LABEL = "Papa Bear Portfolio Value"
 
 class CustomCSVData(bt.feeds.GenericCSVData):
     """
@@ -59,8 +64,8 @@ class CustomPapaBearStrategy(PapaBearStrategy):
     def next(self):
         # Retrieve the date of the current bar
         current_date = self.datas[0].datetime.date(0)
-        # Start recording equity data once the momentum calculation window (2014) is passed
-        if current_date >= datetime.date(2015, 1, 1):   #param
+        # Start recording equity data once we're in the evaluation period
+        if current_date >= EVAL_START:
             self.dates.append(current_date)
             self.portfolio_values.append(self.broker.getvalue())
             # Continue with standard strategy logic
@@ -111,7 +116,8 @@ def run_backtest():
     cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
 
     print(f"\nStarting Portfolio Value: $   {START_CASH:,.2f}")  
-    print(f"Running Backtest from {from_date.date()} to {TO_DATE.date()} (utilizing {from_date.year} for momentum buffer)...")
+    print(f"Running Backtest from {from_date} to {TO_DATE.date()} (utilizing {from_date.year} for momentum buffer)...")
+
     
     # Run the simulation and capture the resulting strategy instance
     results = cerebro.run()
@@ -155,10 +161,10 @@ def run_backtest():
     if len(strat.dates) > 0:
         # Initialize a custom Matplotlib figure for the performance chart
         fig, ax = plt.subplots(figsize=(12, 6))
-        ax.plot(strat.dates, strat.portfolio_values, color='#4F46E5', linewidth=2.5, label='Papa Bear Portfolio Value')
+        ax.plot(strat.dates, strat.portfolio_values, color='#4F46E5', linewidth=2.5, label=PLOT_LABEL)
         
         # Format axes
-        ax.set_title("Livingston's Papa Bear Portfolio Performance (2015 - Present)", fontsize=14, fontweight='bold', pad=15)   #param
+        ax.set_title("{}".format(TITLE_PREFIX.format(EVAL_START.year, TO_DATE.year)), fontsize=14, fontweight='bold', pad=15)
         ax.set_xlabel("Date", fontsize=12, labelpad=10)
         ax.set_ylabel("Portfolio Value ($)", fontsize=12, labelpad=10)
         # Format the Y-axis to use commas for currency values
@@ -180,10 +186,10 @@ def run_backtest():
         plt.tight_layout()
         
         # Define the target directory for saving output artifacts
-        artifact_dir = os.path.expanduser("~/Downloads/backtester") #param
+        artifact_dir = os.path.expanduser(DOWNLOAD_DIR)
         os.makedirs(artifact_dir, exist_ok=True)
         # Export the figure to a high-resolution PNG file
-        plot_path = os.path.join(artifact_dir, f"bt_chart_{datetime.date.today().strftime('%Y-%m-%d')}.png")    #param
+        plot_path = os.path.join(artifact_dir, f"{CHART_PREFIX}{datetime.date.today().strftime('%Y-%m-%d')}.png")
         plt.savefig(plot_path, dpi=300)
         print(f"Performance plot saved to: {plot_path}")
         plt.close()
@@ -205,7 +211,7 @@ def save_portfolio_details(dates, portfolio_values, artifact_dir):
     df = df.resample("BME").last().dropna(how="all")
     df.reset_index(inplace=True)
     
-    csv_path = os.path.join(artifact_dir, f"bt_copyPaste_{datetime.date.today().strftime('%Y-%m-%d')}.csv") #param
+    csv_path = os.path.join(artifact_dir, f"{COPYPASTE_FILE}{datetime.date.today().strftime('%Y-%m-%d')}.csv")
     df.to_csv(csv_path, index=False)
     print(f"Portfolio details saved to: {csv_path}")
 
@@ -233,7 +239,7 @@ def save_all_data(cerebro, artifact_dir):
         df_merged = df_merged.resample("BME").last().dropna(how="all")
         df_merged.reset_index(inplace=True)
         
-        csv_path = os.path.join(artifact_dir, f"bt_alldata_{datetime.date.today().strftime('%Y-%m-%d')}.csv")   #param
+        csv_path = os.path.join(artifact_dir, f"{DATA_FILE}{datetime.date.today().strftime('%Y-%m-%d')}.csv")
         df_merged.to_csv(csv_path, index=False)
         print(f"All data saved to: {csv_path}")
 
