@@ -25,7 +25,8 @@ class PapaBearStrategy(bt.Strategy):
         # Directory where log files are stored
         ('log_dir', str(Path.home() / "Downloads" / "logFiles")),
         # Cash safety buffer to prevent margin/insufficient cash failures
-        ('cash_buffer', 0.03),
+        # careful with this vs. any commission charges - check log for errors if you change it
+        ('cash_buffer', 0.01),
         # Rebalancing threshold trigger (percent difference)
         ('rebalance_trigger', 0.2),
         # Rebalancing threshold target (percent difference)

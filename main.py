@@ -18,6 +18,13 @@ ETFS = [
 # Absolute path to the directory containing historical CSV data
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
+# Backtest configuration constants
+EVAL_START = datetime.datetime(2015, 1, 1)
+TO_DATE = datetime.datetime.now()
+START_CASH = 100000.0
+COMMISSION = 0.000 # transaction fees
+DOWNLOAD_DIR = "~/Downloads/backtester"
+
 class CustomCSVData(bt.feeds.GenericCSVData):
     """
     Custom CSV Parser to correctly map yfinance's CSV output:
@@ -53,7 +60,7 @@ class CustomPapaBearStrategy(PapaBearStrategy):
         # Retrieve the date of the current bar
         current_date = self.datas[0].datetime.date(0)
         # Start recording equity data once the momentum calculation window (2014) is passed
-        if current_date >= datetime.date(2015, 1, 1):
+        if current_date >= datetime.date(2015, 1, 1):   #param
             self.dates.append(current_date)
             self.portfolio_values.append(self.broker.getvalue())
             # Continue with standard strategy logic
@@ -65,9 +72,9 @@ def run_backtest():
     """
     cerebro = bt.Cerebro()
     
-    # 1. Load data feeds (starting from 2014-01-01 to build the 12-month lookback history)
-    from_date = datetime.datetime(2014, 1, 1)
-    to_date = datetime.datetime.now()
+    # 1. Load data feeds (starting from one year before START_EVAL  to build the 12-month lookback history)
+    from_date = EVAL_START - datetime.timedelta(days=365)
+    to_date = TO_DATE  
     
     print("Loading ETF historical data feeds using Custom CSV Parser...")
     for ticker in ETFS:
@@ -87,9 +94,9 @@ def run_backtest():
 
 
     # 2. Configure broker
-    cerebro.broker.setcash(100000.0)
-    # Apply a 0.1% commission to simulate realistic transaction costs
-    cerebro.broker.setcommission(commission=0.001)
+    cerebro.broker.setcash(START_CASH)  
+    # vanguard etfs have no commission.  caution: you may get errors based on the cash buffer
+    cerebro.broker.setcommission(commission=COMMISSION)
     # Cheat on close to allow same-day rebalance order execution
     cerebro.broker.set_coc(True)
     # Disable submission cash checks to allow rebalancing sells/buys on same bar
@@ -103,15 +110,15 @@ def run_backtest():
     cerebro.addanalyzer(bt.analyzers.DrawDown, _name='drawdown')
     cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
 
-    print("\nStarting Portfolio Value: $100,000.00")
-    print("Running Backtest from 2015-01-01 to Present (utilizing 2014 for momentum buffer)...")
+    print(f"\nStarting Portfolio Value: $   {START_CASH:,.2f}")  
+    print(f"Running Backtest from {from_date.date()} to {TO_DATE.date()} (utilizing {from_date.year} for momentum buffer)...")
     
     # Run the simulation and capture the resulting strategy instance
     results = cerebro.run()
     strat = results[0]
 
     # Save all data from cerebro to alldata.csv (must be after run so line buffers are populated)
-    artifact_dir = os.path.expanduser("~/Downloads/backtester")
+    artifact_dir = os.path.expanduser(DOWNLOAD_DIR)
     os.makedirs(artifact_dir, exist_ok=True)
     save_all_data(cerebro, artifact_dir)
 
@@ -138,7 +145,7 @@ def run_backtest():
     # Log finalized statistics to the console
     print("\n================ BACKTEST RESULTS ================")
     print(f"Final Portfolio Value: ${final_val:,.2f}")
-    print(f"Total Return:          {((final_val - 100000.0) / 100000.0):.2%}")
+    print(f"Total Return:          {((final_val - START_CASH) / START_CASH):.2%}")  
     print(f"CAGR:                  {cagr:.2f}%")
     print(f"Sharpe Ratio:          {sharpe:.2f}")
     print(f"Max Drawdown:          {max_dd:.2f}%")
@@ -151,7 +158,7 @@ def run_backtest():
         ax.plot(strat.dates, strat.portfolio_values, color='#4F46E5', linewidth=2.5, label='Papa Bear Portfolio Value')
         
         # Format axes
-        ax.set_title("Livingston's Papa Bear Portfolio Performance (2015 - Present)", fontsize=14, fontweight='bold', pad=15)
+        ax.set_title("Livingston's Papa Bear Portfolio Performance (2015 - Present)", fontsize=14, fontweight='bold', pad=15)   #param
         ax.set_xlabel("Date", fontsize=12, labelpad=10)
         ax.set_ylabel("Portfolio Value ($)", fontsize=12, labelpad=10)
         # Format the Y-axis to use commas for currency values
@@ -173,10 +180,10 @@ def run_backtest():
         plt.tight_layout()
         
         # Define the target directory for saving output artifacts
-        artifact_dir = os.path.expanduser("~/Downloads/backtester")
+        artifact_dir = os.path.expanduser("~/Downloads/backtester") #param
         os.makedirs(artifact_dir, exist_ok=True)
         # Export the figure to a high-resolution PNG file
-        plot_path = os.path.join(artifact_dir, f"bt_chart_{datetime.date.today().strftime('%Y-%m-%d')}.png")
+        plot_path = os.path.join(artifact_dir, f"bt_chart_{datetime.date.today().strftime('%Y-%m-%d')}.png")    #param
         plt.savefig(plot_path, dpi=300)
         print(f"Performance plot saved to: {plot_path}")
         plt.close()
@@ -198,7 +205,7 @@ def save_portfolio_details(dates, portfolio_values, artifact_dir):
     df = df.resample("BME").last().dropna(how="all")
     df.reset_index(inplace=True)
     
-    csv_path = os.path.join(artifact_dir, f"bt_copyPaste_{datetime.date.today().strftime('%Y-%m-%d')}.csv")
+    csv_path = os.path.join(artifact_dir, f"bt_copyPaste_{datetime.date.today().strftime('%Y-%m-%d')}.csv") #param
     df.to_csv(csv_path, index=False)
     print(f"Portfolio details saved to: {csv_path}")
 
@@ -226,7 +233,7 @@ def save_all_data(cerebro, artifact_dir):
         df_merged = df_merged.resample("BME").last().dropna(how="all")
         df_merged.reset_index(inplace=True)
         
-        csv_path = os.path.join(artifact_dir, f"bt_alldata_{datetime.date.today().strftime('%Y-%m-%d')}.csv")
+        csv_path = os.path.join(artifact_dir, f"bt_alldata_{datetime.date.today().strftime('%Y-%m-%d')}.csv")   #param
         df_merged.to_csv(csv_path, index=False)
         print(f"All data saved to: {csv_path}")
 
