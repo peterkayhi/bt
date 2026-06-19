@@ -19,16 +19,16 @@ ETFS = [
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 # Backtest configuration constants
-EVAL_START = datetime.date(2015, 1, 1)
+EVAL_START = datetime.date(2015, 1, 1)  #code will start pulling data 1 yr prior to calc momentums
 TO_DATE = datetime.datetime.now()
-START_CASH = 100000.0
-COMMISSION = 0.000 # transaction fees
-DOWNLOAD_DIR = "~/Downloads/backtrader"
-CHART_PREFIX = "bt_chart_"
-TITLE_PREFIX = "Livingston's Papa Bear Portfolio Performance ({} - {})"
-COPYPASTE_FILE = "bt_copyPaste_"
-DATA_FILE = "bt_alldata_"
-PLOT_LABEL = "Papa Bear Portfolio Value"
+START_CASH = 100000.0   # starting cash balance
+COMMISSION = 0.000 # transaction fees, if any
+DOWNLOAD_DIR = "~/Downloads/backtrader" #directory holding generated data files
+CHART_PREFIX = "bt_chart_" #prefix for chart filenames
+TITLE_PREFIX = "Livingston's Papa Bear Portfolio Performance ({} - {})" #brackets hold dates
+COPYPASTE_FILE = "bt_copyPaste_" #prefix for copy paste filenames
+DATA_FILE = "bt_alldata_" #prefix for data filenames
+PLOT_LABEL = "Papa Bear Portfolio Value" #label for the plot
 
 class CustomCSVData(bt.feeds.GenericCSVData):
     """
