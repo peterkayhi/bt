@@ -48,6 +48,20 @@ class CustomCSVData(bt.feeds.GenericCSVData):
         ('openinterest', -1),
     )
 
+class CustomPandasData(bt.feeds.PandasData):
+    """
+    Custom Pandas Data feed mapping our cache MultiIndex DataFrame columns to Backtrader.
+    """
+    params = (
+        ('datetime', None),
+        ('open', 'open'),
+        ('high', 'high'),
+        ('low', 'low'),
+        ('close', 'close'),
+        ('volume', 'volume'),
+        ('openinterest', -1),
+    )
+
 class CustomPapaBearStrategy(PapaBearStrategy):
     """
     Subclass PapaBearStrategy to track portfolio values and dates 
@@ -81,19 +95,21 @@ def run_backtest():
     from_date = EVAL_START - datetime.timedelta(days=365)
     to_date = TO_DATE  
     
-    print("Loading ETF historical data feeds using Custom CSV Parser...")
+    print("Loading ETF historical data feeds using btcache...")
+    from btcache import btcache
+    cache = btcache()
+    # Call the caching system to fetch all ETFs at once
+    cache_result = cache.get(ETFS, from_date, to_date)
+    all_data = cache_result.final_df
+    
     for ticker in ETFS:
-        # Validate existence of data files before loading
-        filepath = os.path.join(DATA_DIR, f"{ticker}.csv")
-        if not os.path.exists(filepath):
-            raise FileNotFoundError(f"Data file not found: {filepath}. Please run download_data.py first.")
-            
-        # Use our CustomCSVData parser to map columns correctly
-        data = CustomCSVData(
-            dataname=filepath,
-            fromdate=from_date,
-            todate=to_date
-        )
+        # Slice the MultiIndex DataFrame for the specific ticker
+        # all_data columns are a MultiIndex with levels: (ticker, attribute)
+        # e.g. all_data[ticker] has columns: ['open', 'high', 'low', 'close', 'volume']
+        ticker_df = all_data[ticker]
+        
+        # Use our CustomPandasData parser to map the sliced dataframe
+        data = CustomPandasData(dataname=ticker_df, fromdate=from_date, todate=to_date)  # type: ignore
         # Register the data feed with a specific ticker name for internal reference
         cerebro.adddata(data, name=ticker)
 
