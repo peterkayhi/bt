@@ -16,16 +16,139 @@ plt.style.use('seaborn-v0_8-whitegrid' if 'seaborn-v0_8-whitegrid' in plt.style.
 # List of portfolios to backtest, each with its custom name and list of tickers
 PORTFOLIOS = [
     {
-        "name": "Papa Bear",
+        "name": "PapaBear",
         "tickers": ['VTV', 'VUG', 'VIOV', 'VIOG', 'VEA', 'VWO', 'VNQ', 'PDBC', 'IAU', 'EDV', 'VGIT', 'VCLT', 'BNDX']
     },
     {
-        "name": "Tech and Growth Focus",
+        "name": "TechGrowthFocus",
         "tickers": ['VUG', 'VIOG', 'QQQ', 'SMH', 'VEA', 'VWO']
     },
     {
-        "name": "Conservative Income",
+        "name": "ConservInc",
         "tickers": ['BND', 'BNDX', 'VGIT', 'VCLT', 'VTIP', 'VTV']
+    },
+    {
+        "name": "gemini20",
+        "tickers": [
+            # US Equities
+            'VV',    # US Large Cap Blend
+            'MTUM',  # US Large Cap Momentum
+            'IJH',   # US Mid Cap
+            'VIOO',  # US Small Cap Blend
+            'IWC',   # US Micro-Cap
+            
+            # International & Emerging Equities
+            'VEA',   # International Developed Blend
+            'VWO',   # Emerging Markets
+            'VSS',   # International Small Cap Blend
+            'EWX',   # Emerging Markets Small Cap
+            
+            # Real Assets & Alternatives
+            'VNQ',   # US REITs
+            'VNQI',  # International REITs
+            'DBC',   # Broad Commodities
+            'IAU',   # Gold
+            'TREE',  # Timber
+            
+            # Fixed Income
+            'VGIT',  # Intermediate-Term US Treasuries
+            'TLT',   # Long-Term US Treasuries
+            'VTIP',  # Treasury Inflation-Protected Securities (TIPS)
+            'LQD',   # US Corporate Bonds (Investment Grade)
+            'HYG',   # US High Yield Credit (Junk Bonds)
+            'BNDX',  # Non-US Developed Bonds
+            'VWOB'   # Emerging Market Bonds
+        ]
+    },
+    {
+        "name": "grok19",
+        "tickers": [
+            # US Equities (now full size spectrum + blend)
+            "VTI",   # US Total Market
+            "VTV",   # Large Value
+            "VUG",   # Large Growth
+            "VO",    # Mid Cap Blend
+            "VIOV",  # Small Value
+            "VIOG",  # Small Growth
+            
+            # International Equities (added small-cap exposure)
+            "VEA",   # Developed Markets
+            "VWO",   # Emerging Markets
+            "VSS",   # International Small Cap
+            
+            # Real Estate (now global)
+            "VNQ",   # US REITs
+            "VNQI",  # Global ex-US REITs
+            
+            # Commodities & Precious Metals
+            "PDBC",  # Broad Commodities
+            "IAU",   # Gold
+            
+            # Fixed Income (added safety + inflation + credit)
+            "BIL",   # Short-Term Treasuries (cash proxy)
+            "VGIT",  # Intermediate Treasuries
+            "EDV",   # Long Treasuries
+            "VTIP",  # TIPS (inflation-protected)
+            "VCLT",  # Long Corporate Bonds
+            "JNK",   # High Yield Bonds
+            "BNDX"   # International Bonds
+        ]
+    },    
+    {
+        "name": "ramseyPicks",
+        "tickers": ["VUG", "QQQ", "VIG", "SCHD", "MGK", "IWY", "VXUS", "VEA"]
+    },
+    {
+        "name": "rayBroad",
+        "tickers": [
+            # U.S. & global large‑cap equity indices
+            'SPY',     # SPDR S&P 500 ETF Trust
+            'IVV',     # iShares Core S&P 500 ETF
+
+            # International developed‑market equities
+            'IEFA',    # iShares Core MSCI EAFE ETF
+            'VEA',     # Vanguard FTSE Developed Markets ETF
+
+            # Emerging‑market equities
+            'VWO',     # Vanguard FTSE Emerging Markets ETF
+            'IEMG',    # iShares Core MSCI Emerging Markets ETF
+
+            # Dividend‑focused equity funds or high‑dividend ETFs
+            'VYM',     # Vanguard High Dividend Yield ETF
+            'SCHD',    # Schwab U.S. Dividend Equity ETF
+
+            # Broad industrials & materials sectors (commodities‑linked equities)
+            'XLI',     # Industrial Select Sector SPDR Fund
+            'XLB',     # Materials Select Sector SPDR Fund
+
+            # Short‑duration Treasury ETFs
+            'SHY',     # iShares 1-3 Year Treasury Bond ETF
+            'BIL',     # SPDR Bloomberg 1-3 Month T-Bill ETF
+
+            # Long‑duration Treasury ETFs
+            'TLT',     # iShares 20+ Year Treasury Bond ETF
+            'EDV',     # Vanguard Extended Duration Treasury ETF
+
+            # Investment‑grade corporate bond indices
+            'LQD',     # iShares iBoxx $ Investment Grade Corporate Bond ETF
+            'VCIT',    # Vanguard Intermediate-Term Corporate Bond ETF
+
+            # High‑yield (junk) bond indices
+            'HYG',     # iShares iBoxx $ High Yield Corporate Bond ETF
+            'JNK',     # SPDR Bloomberg High Yield Bond ETF
+
+            # Broad commodity index
+            'DBC',     # Invesco DB Commodity Index Tracking Fund
+            'GSG',     # iShares S&P GSCI Commodity-Indexed Trust
+
+            # Real‑estate investment trusts (REITs)
+            'VNQ',     # Vanguard Real Estate ETF
+            'IYR',     # iShares U.S. Real Estate ETF
+
+            # Gold (physical or ETF)
+            'GLD',     # SPDR Gold Shares
+            'IAU',     # iShares Gold Trust            
+        ]
     }
 ]
 
