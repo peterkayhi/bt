@@ -20,7 +20,7 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 # Backtest configuration constants
 EVAL_START = datetime.date(2015, 1, 1)  #code will start pulling data 1 yr prior to calc momentums
-TO_DATE = datetime.datetime.now()
+TO_DATE = datetime.date(2026, 5, 31)  # or datetime.datetime.now()
 START_CASH = 100000.0   # starting cash balance
 COMMISSION = 0.000 # transaction fees, if any
 DOWNLOAD_DIR = "~/Downloads/backtrader" #directory holding generated data files
