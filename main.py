@@ -118,6 +118,7 @@ def run_backtest():
     
     portfolio_results = {}
     portfolio_metrics = {}
+    portfolio_cagrs = {}
     
     for portfolio in PORTFOLIOS:
         name = portfolio["name"]
@@ -180,7 +181,7 @@ def run_backtest():
         print(f"Max Drawdown:          {max_dd:.2f}%")
         print("========================================================\n")
         
-        # Store results and metrics
+        # Store results, metrics, and raw CAGR values
         portfolio_results[name] = {
             "dates": strat.dates,
             "values": strat.portfolio_values
@@ -193,7 +194,13 @@ def run_backtest():
             "Sharpe Ratio": f"{sharpe:.2f}",
             "Max Drawdown": f"{max_dd:.2f}%"
         }
+        portfolio_cagrs[name] = cagr
         
+    # Reorder portfolio results and metrics by CAGR (descending order)
+    sorted_names = sorted(portfolio_results.keys(), key=lambda name: portfolio_cagrs[name], reverse=True)
+    portfolio_results = {name: portfolio_results[name] for name in sorted_names}
+    portfolio_metrics = {name: portfolio_metrics[name] for name in sorted_names}
+
     # Generate unified outputs
     artifact_dir = os.path.expanduser(DOWNLOAD_DIR)
     os.makedirs(artifact_dir, exist_ok=True)
