@@ -20,9 +20,10 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 # Backtest configuration constants
 EVAL_START = datetime.date(2015, 1, 1)  #code will start pulling data 1 yr prior to calc momentums
-TO_DATE = datetime.date(2026, 5, 31)  # or datetime.datetime.now()
+TO_DATE = datetime.date(2026, 6, 1)  # or datetime.datetime.now()
 START_CASH = 100000.0   # starting cash balance
 COMMISSION = 0.000 # transaction fees, if any
+SKIP_CACHE = False # set True to get data direct from yfinance
 DOWNLOAD_DIR = "~/Downloads/backtrader" #directory holding generated data files
 CHART_PREFIX = "bt_chart_" #prefix for chart filenames
 TITLE_PREFIX = "Livingston's Papa Bear Portfolio Performance ({} - {})" #brackets hold dates
@@ -99,7 +100,7 @@ def run_backtest():
     from btcache import btcache
     cache = btcache()
     # Call the caching system to fetch all ETFs at once
-    cache_result = cache.get(ETFS, from_date, to_date)
+    cache_result = cache.get(ETFS, from_date, to_date, skip_cache=SKIP_CACHE)
     all_data = cache_result.final_df
     
     for ticker in ETFS:
@@ -132,7 +133,7 @@ def run_backtest():
     cerebro.addanalyzer(bt.analyzers.Returns, _name='returns')
 
     print(f"\nStarting Portfolio Value: $   {START_CASH:,.2f}")  
-    print(f"Running Backtest from {from_date} to {TO_DATE.date()} (utilizing {from_date.year} for momentum buffer)...")
+    print(f"Running Backtest from {EVAL_START} to {TO_DATE}")
 
     
     # Run the simulation and capture the resulting strategy instance
