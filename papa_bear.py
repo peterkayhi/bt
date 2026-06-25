@@ -20,8 +20,10 @@ class PapaBearStrategy(bt.Strategy):
     params = (
         # Day of month to rebalance; currently used as a conceptual placeholder
         ('rebalance_day', 1), 
-        # Logger prefix/identifier
-        ('log_name', f"papa_bear_{datetime.date.today().strftime('%Y-%m-%d')}"),
+        # Logger prefix/identifier. If None, it will be dynamically generated using portfolio_name.
+        ('log_name', None),
+        # Portfolio name being backtested
+        ('portfolio_name', 'Papa Bear'),
         # Directory where log files are stored
         ('log_dir', str(Path.home() / "Downloads" / "logFiles")),
         # Cash safety buffer to prevent margin/insufficient cash failures
@@ -66,14 +68,22 @@ class PapaBearStrategy(bt.Strategy):
         Sets up the logger and its handlers (file handler and console stream handler)
         according to the configured strategy parameters.
         """
+        # Determine dynamic log name
+        if self.p.log_name is None:
+            clean_name = self.p.portfolio_name.lower().replace(" ", "_").replace("&", "and")
+            log_name = f"papa_bear_{clean_name}_{datetime.date.today().strftime('%Y-%m-%d')}"
+        else:
+            log_name = self.p.log_name
+
         # Setup logging
-        self.logger = logging.getLogger(self.p.log_name)
+        self.logger = logging.getLogger(log_name)
         logdir = Path(self.p.log_dir)
         logdir.mkdir(parents=True, exist_ok=True)
         self.logger.setLevel(logging.INFO)
         if not self.logger.handlers:
-            formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-            for handler in [logging.FileHandler(f"{logdir}/{self.p.log_name}.app.log", mode='a', encoding='utf-8'), logging.StreamHandler()]:
+            prefix = f"[{self.p.portfolio_name}] " if self.p.portfolio_name else ""
+            formatter = logging.Formatter(f'%(asctime)s %(levelname)-8s {prefix}%(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+            for handler in [logging.FileHandler(f"{logdir}/{log_name}.app.log", mode='a', encoding='utf-8'), logging.StreamHandler()]:
                 handler.setFormatter(formatter)
                 self.logger.addHandler(handler)
 
